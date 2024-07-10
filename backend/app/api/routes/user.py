@@ -1,5 +1,4 @@
-from fastapi import APIRouter, Depends
-from typing import Any, Union
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from app.schemas.user import UserCreate, UserRead
 from app.services.user import create_user, get_user
@@ -13,4 +12,7 @@ def create_new_user(user: UserCreate, db: Session = Depends(get_db)):
 
 @router.get("/{user_id}", response_model=UserRead)
 def read_user(user_id: int, db: Session = Depends(get_db)):
-    return get_user(db=db, user_id=user_id)
+    user = get_user(db=db, user_id=user_id)
+    if user is None:
+        raise HTTPException(status_code=404, detail="User not found")
+    return user

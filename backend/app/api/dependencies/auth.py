@@ -1,24 +1,19 @@
-from fastapi import Depends, HTTPException
-from fastapi.security import OAuth2AuthorizationCodeBearer
-from sqlalchemy.orm import Session
-from app.db.session import get_db
-from app.models.user import User
-from jose import jwt, JWTError
+from starlette.config import Config
+from authlib.integrations.starlette_client import OAuth
+from app.core.config import settings
 
-oauth2_scheme = OAuth2AuthorizationCodeBearer(
-    authorizationUrl="https://accounts.google.com/o/oauth2/auth",
-    tokenUrl="https://oauth2.googleapis.com/token"
+# OAuth settings
+GOOGLE_CLIENT_ID = settings.google_client_id or None
+GOOGLE_CLIENT_SECRET = settings.google_client_secret or None
+if GOOGLE_CLIENT_ID is None or GOOGLE_CLIENT_SECRET is None:
+    raise BaseException('Missing google authentication credentials. Please set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET in .env file.')
+
+# Set up oauth
+config_data = {'GOOGLE_CLIENT_ID': GOOGLE_CLIENT_ID, 'GOOGLE_CLIENT_SECRET': GOOGLE_CLIENT_SECRET}
+starlette_config = Config(environ=config_data)
+oauth = OAuth(starlette_config)
+oauth.register(
+    name='google',
+    server_metadata_url='https://accounts.google.com/.well-known/openid-configuration',
+    client_kwargs={'scope': 'openid email profile'},
 )
-
-def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
-    try:
-        payload = jwt.decode(token, "your_secret_key", algorithms=["HS256"])
-        user_id: str = payload.get("sub")
-        if user_id is None:
-            raise HTTPException(status_code=401, detail="Invalid authentication credentials")
-        user = db.query(User).filter(User.id == user_id).first()
-        if user is None:
-            raise HTTPException(status_code=401, detail="Invalid authentication credentials")
-        return user
-    except JWTError:
-        raise HTTPException(status_code=401, detail="Invalid authentication credentials")
