@@ -1,6 +1,7 @@
 from fastapi import FastAPI
 from app.api.routes import user as user_routes
 from app.api.routes import auth as auth_routes
+from app.api.routes import analysis as analysis_routes
 from app.db.base import Base, engine
 from app.core.config import settings
 from fastapi.middleware.cors import CORSMiddleware
@@ -25,3 +26,4 @@ app.add_middleware(SessionMiddleware, secret_key=SECRET_KEY)
 
 app.include_router(auth_routes.router, tags=["auth"])
 app.include_router(user_routes.router, prefix="/users", tags=["users"])
+app.include_router(analysis_routes.router, prefix="/analysis", tags=["analysis"])
